@@ -71,7 +71,7 @@ with col1:
 
 with col2:
 
-```
+
 semester = st.selectbox(
     "Semester",
     [1,2,3,4,5,6,7,8]
@@ -83,11 +83,11 @@ sks = st.number_input(
     max_value=144,
     value=80
 )
-```
+
 
 if st.button("🔍 Prediksi Akademik"):
 
-```
+
 data = [[
     ipk,
     kehadiran,
@@ -99,7 +99,7 @@ data = [[
 hasil_akademik = model_akademik.predict(data)
 
 st.session_state["hasil_akademik"] = hasil_akademik[0]
-```
+
 
 # =====================
 
@@ -109,7 +109,7 @@ st.session_state["hasil_akademik"] = hasil_akademik[0]
 
 if "hasil_akademik" in st.session_state:
 
-```
+
 st.markdown("---")
 
 st.subheader("📌 Hasil Prediksi Akademik")
@@ -141,7 +141,7 @@ if st.button("📝 Analisis Sentimen"):
     )
 
     st.session_state["hasil_sentiment"] = hasil_sentiment[0]
-```
+
 
 # =====================
 
@@ -155,7 +155,7 @@ and
 "hasil_sentiment" in st.session_state
 ):
 
-```
+
 st.markdown("---")
 
 st.header("📋 Hasil Akhir Analisis")
@@ -175,12 +175,12 @@ if (
 ):
 
     st.error("""
-```
+
 
 ⚠️ Mahasiswa terindikasi membutuhkan perhatian lebih.
 """)
 
-```
+
     st.warning("""
 ```
 
