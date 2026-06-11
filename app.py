@@ -48,29 +48,26 @@ st.header("📊 STEP 1 - Data Akademik Mahasiswa")
 col1, col2 = st.columns(2)
 
 with col1:
+    ipk = st.number_input(
+        "IPK",
+        min_value=0.0,
+        max_value=4.0,
+        value=3.0
+    )
 
+    kehadiran = st.slider(
+        "Kehadiran (%)",
+        0,
+        100,
+        80
+    )
 
-ipk = st.number_input(
-    "IPK",
-    min_value=0.0,
-    max_value=4.0,
-    value=3.0
-)
-
-kehadiran = st.slider(
-    "Kehadiran (%)",
-    0,
-    100,
-    80
-)
-
-nilai = st.slider(
-    "Nilai Rata-rata",
-    0,
-    100,
-    75
-)
-```
+    nilai = st.slider(
+        "Nilai Rata-rata",
+        0,
+        100,
+        75
+    )
 
 with col2:
 
