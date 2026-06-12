@@ -149,14 +149,21 @@ if st.session_state["page"] == "data_akademik":
         )
 
     # =====================
-    # PREDIKSI AKADEMIK
+    # PREDIKSI AKADEMIK (dengan validasi input)
     # =====================
-    if st.button("🔍 Prediksi Akademik"):
+    if st.button("Prediksi"):
+        # Validasi field wajib
+        missing = []
+        if not (isinstance(mata_kuliah, str) and mata_kuliah.strip()):
+            missing.append("Mata Kuliah")
 
-        data = [[ipk, kehadiran, nilai, semester, sks]]
-        hasil_akademik = model_akademik.predict(data)
-
-        st.session_state["hasil_akademik"] = hasil_akademik[0]
+        # Jika ada field yang kosong, beri peringatan dan jangan jalankan model
+        if missing:
+            st.warning("Isi data wajib terlebih dahulu: " + ", ".join(missing))
+        else:
+            data = [[ipk, kehadiran, nilai, semester, sks]]
+            hasil_akademik = model_akademik.predict(data)
+            st.session_state["hasil_akademik"] = hasil_akademik[0]
 
     # =====================
     # HASIL AKADEMIK
@@ -181,11 +188,14 @@ if st.session_state["page"] == "data_akademik":
         feedback = st.text_area("Masukkan feedback mahasiswa")
 
         # =====================
-        # PREDIKSI SENTIMEN
+        # PREDIKSI SENTIMEN (dengan validasi)
         # =====================
         if st.button("📝 Analisis Sentimen"):
-            hasil_sentiment = model_sentiment.predict([feedback])
-            st.session_state["hasil_sentiment"] = hasil_sentiment[0]
+            if not (isinstance(feedback, str) and feedback.strip()):
+                st.warning("Masukkan feedback mahasiswa terlebih dahulu.")
+            else:
+                hasil_sentiment = model_sentiment.predict([feedback])
+                st.session_state["hasil_sentiment"] = hasil_sentiment[0]
 
     # =====================
     # HASIL AKHIR
