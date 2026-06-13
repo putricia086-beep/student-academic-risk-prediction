@@ -1,5 +1,28 @@
 import streamlit as st
 import joblib
+import pandas as pd
+import plotly.express as px
+import os
+import re
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+
+
+def preprocess_text(text: str) -> str:
+    """Simple preprocessing:
+    - lowercase
+    - remove digits
+    - remove punctuation and symbols
+    - collapse multiple spaces
+    """
+    if not isinstance(text, str):
+        return ""
+    s = text.lower()
+    s = re.sub(r"\d+", "", s)  # remove digits
+    s = re.sub(r"[^\w\s]", "", s)  # remove punctuation/symbols
+    s = re.sub(r"_", " ", s)  # replace underscores with space
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
 
 # =====================
 # KONFIGURASI HALAMAN
@@ -50,6 +73,10 @@ model_sentiment = joblib.load("model_sentiment.pkl")
 # =====================
 if "page" not in st.session_state:
     st.session_state["page"] = "welcome"
+
+# Initialize sentiment history in session_state
+if "riwayat_sentimen" not in st.session_state:
+    st.session_state["riwayat_sentimen"] = []
 
 # =====================
 # Halaman: WELCOME
@@ -141,10 +168,10 @@ if st.session_state["page"] == "data_akademik":
             [1, 2, 3, 4, 5, 6, 7, 8]
         )
 
-        sks = st.number_input(
-            "SKS yang diambil",
-            min_value=1,
-            max_value=25,
+        sks_lulus = st.number_input(
+            "SKS Lulus",
+            min_value=20,
+            max_value=144,
             value=20
         )
 
@@ -161,7 +188,7 @@ if st.session_state["page"] == "data_akademik":
         if missing:
             st.warning("Isi data wajib terlebih dahulu: " + ", ".join(missing))
         else:
-            data = [[ipk, kehadiran, nilai, semester, sks]]
+            data = [[ipk, kehadiran, nilai, semester, sks_lulus]]
             hasil_akademik = model_akademik.predict(data)
             st.session_state["hasil_akademik"] = hasil_akademik[0]
 
@@ -186,6 +213,11 @@ if st.session_state["page"] == "data_akademik":
         st.header("Feedback Mahasiswa")
 
         feedback = st.text_area("Masukkan feedback mahasiswa")
+        # Tampilkan hasil preprocessing di bawah input
+        processed_feedback = preprocess_text(feedback)
+        if feedback and processed_feedback:
+            st.markdown("**Teks hasil preprocessing:**")
+            st.write(processed_feedback)
 
         # =====================
         # PREDIKSI SENTIMEN (dengan validasi)
@@ -194,8 +226,23 @@ if st.session_state["page"] == "data_akademik":
             if not (isinstance(feedback, str) and feedback.strip()):
                 st.warning("Masukkan feedback mahasiswa terlebih dahulu.")
             else:
-                hasil_sentiment = model_sentiment.predict([feedback])
+                # Simpan komentar ke CSV (buat jika belum ada, atau tambahkan baris)
+                csv_path = "dataset_komentar_mahasiswa.csv"
+                try:
+                    df_new = pd.DataFrame({"komentar": [feedback]})
+                    if not os.path.exists(csv_path):
+                        df_new.to_csv(csv_path, index=False, encoding='utf-8-sig')
+                    else:
+                        df_new.to_csv(csv_path, mode='a', header=False, index=False, encoding='utf-8-sig')
+                    st.success("Komentar berhasil disimpan.")
+                except Exception as e:
+                    st.error(f"Gagal menyimpan komentar: {e}")
+
+                # Lakukan analisis sentimen pada teks yang sudah dipreproses
+                hasil_sentiment = model_sentiment.predict([processed_feedback])
                 st.session_state["hasil_sentiment"] = hasil_sentiment[0]
+                # Simpan hasil sentimen ke riwayat_sentimen (session)
+                st.session_state.setdefault("riwayat_sentimen", []).append(st.session_state["hasil_sentiment"])
 
     # =====================
     # HASIL AKHIR
@@ -235,6 +282,67 @@ Rekomendasi:
         else:
             st.info("📌 Tetap pantau perkembangan akademik secara berkala.")
 
-st.markdown("---")
-st.caption("Academic Performance Monitoring System | Machine Learning Project")
+        # ----------------- Dashboard Analisis Sentimen -----------------
+        riwayat_s = st.session_state.get("riwayat_sentimen", [])
+        if riwayat_s:
+            counts = pd.Series(riwayat_s).value_counts()
+            pos = int(counts.get("Positif", 0))
+            neu = int(counts.get("Netral", 0))
+            neg = int(counts.get("Negatif", 0))
+        else:
+            pos = neu = neg = 0
+
+        s1, s2, s3 = st.columns(3)
+        s1.metric("Sentimen Positif", pos)
+        s2.metric("Sentimen Netral", neu)
+        s3.metric("Sentimen Negatif", neg)
+
+        # Pie chart
+        df_sent = pd.DataFrame({
+            "sentiment": ["Positif", "Netral", "Negatif"],
+            "count": [pos, neu, neg]
+        })
+        fig_pie_sent = px.pie(df_sent, names="sentiment", values="count", title="Distribusi Sentimen Feedback", color_discrete_sequence=["#0b3d91", "#6fbf73", "#0b6b3a"])
+        fig_pie_sent.update_traces(textposition='inside', textinfo='percent+label')
+        st.plotly_chart(fig_pie_sent, use_container_width=True)
+
+        # Bar chart
+        fig_bar_sent = px.bar(df_sent, x="sentiment", y="count", color="sentiment", title="Jumlah per Kategori Sentimen", color_discrete_map={"Positif": "#0b3d91", "Netral": "#6fbf73", "Negatif": "#0b6b3a"})
+        fig_bar_sent.update_layout(showlegend=False)
+        st.plotly_chart(fig_bar_sent, use_container_width=True)
+
+        # Insight AI: interpretasi otomatis berdasarkan sentimen dominan
+        total_s = pos + neu + neg
+        if total_s > 0:
+            dominant = max((pos, "Positif"), (neu, "Netral"), (neg, "Negatif"))[1]
+            if dominant == "Negatif":
+                st.error("Insight: Sentimen mayoritas negatif — perlu tindakan cepat. Pertimbangkan pengumpulan umpan balik lebih lanjut, sesi konseling, atau perbaikan kualitas pengajaran.")
+            elif dominant == "Positif":
+                st.success("Insight: Sentimen mayoritas positif — mahasiswa menunjukkan kepuasan. Pertahankan praktik yang efektif dan komunikasi yang baik.")
+            else:
+                st.info("Insight: Sentimen mayoritas netral — pantau perkembangan dan kumpulkan detail tambahan bila perlu.")
+        # ---------------------------------------------------------------
+
+        # ----------------- WordCloud Komentar Mahasiswa -----------------
+        st.markdown("## ☁️ WordCloud Komentar Mahasiswa")
+        csv_path = "dataset_komentar_mahasiswa.csv"
+        if not os.path.exists(csv_path):
+            st.info("Belum ada data komentar untuk WordCloud.")
+        else:
+            try:
+                df_comments = pd.read_csv(csv_path, encoding='utf-8-sig')
+                if "komentar" not in df_comments.columns or df_comments["komentar"].dropna().empty:
+                    st.info("Belum ada data komentar untuk WordCloud.")
+                else:
+                    text = " ".join(df_comments["komentar"].astype(str).dropna().tolist())
+                    wc = WordCloud(background_color="white", width=800, height=400).generate(text)
+                    fig, ax = plt.subplots(figsize=(10, 5))
+                    ax.imshow(wc, interpolation='bilinear')
+                    ax.axis('off')
+                    st.pyplot(fig)
+            except Exception as e:
+                st.error(f"Gagal membuat WordCloud: {e}")
+
+        st.markdown("---")
+        st.caption("Academic Performance Monitoring System | Machine Learning Project")
 
