@@ -3,6 +3,11 @@ import joblib
 import pandas as pd
 import plotly.express as px
 import os
+import streamlit as st
+import joblib
+import pandas as pd
+import plotly.express as px
+import os
 import re
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
@@ -33,28 +38,40 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom academic styling (blue & green)
+# Custom modern styling (professional, elegant, no sidebar)
 st.markdown(
-    """
-    <style>
-    /* Page background */
-    .stApp { background-color: #f4f8fb; }
-    /* Container */
-    .block-container { background-color: #ffffff; padding: 2rem; border-radius: 8px; max-width: 1100px; margin: 1rem auto; }
-    /* Title and headers */
-    h1 { color: #0b3d91; font-family: 'Segoe UI', Roboto, sans-serif; }
-    h2, h3 { color: #0b6b3a; font-family: 'Segoe UI', Roboto, sans-serif; }
-    /* Header boxed style */
-    .header-box { background: linear-gradient(90deg, #0b3d91 0%, #0b6b3a 100%); color: #fff; padding: 1.5rem 2rem; border-radius: 8px; box-shadow: 0 6px 22px rgba(11,61,145,0.12); margin: 0 auto 1rem; max-width: 1100px; text-align: center; }
-    .header-box h1 { margin: 0; color: #ffffff; font-size: 2rem; font-weight: 700; }
-    .header-box .subtitle { margin: 0.5rem 0 0; color: rgba(255,255,255,0.95); font-size: 1rem; line-height: 1.4; }
-    /* Buttons */
-    .stButton>button { background-color: #0b3d91; color: white; border-radius:6px; }
-    /* Input focus */
-    input:focus, textarea:focus { outline: 2px solid #0b6b3a; }
-    </style>
-    """,
-    unsafe_allow_html=True,
+        """
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+        :root{
+            --bg: #f6f8fb;
+            --card: #ffffff;
+            --primary: #0b3d91;
+            --accent: #0b6b3a;
+            --muted: #6b7280;
+        }
+        html, body, [class*="stApp"] {
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+            background: linear-gradient(180deg, var(--bg) 0%, #ffffff 100%);
+            color: #0f1724;
+        }
+        .block-container{ background: transparent; padding: 0; max-width: 1180px; margin: 1.25rem auto; }
+        .app-card{ background: var(--card); padding: 1.25rem; border-radius: 14px; box-shadow: 0 10px 30px rgba(15,23,42,0.06); border: 1px solid rgba(15,23,42,0.04); }
+        .header-box{ background: linear-gradient(90deg, rgba(11,61,145,0.95) 0%, rgba(11,107,58,0.95) 100%); color: #fff; padding: 2rem; border-radius: 12px; box-shadow: 0 12px 40px rgba(11,61,145,0.08); text-align:center; }
+        .header-box h1{ margin:0; font-size:2.4rem; font-weight:800; letter-spacing:0.2px; }
+        .header-box .subtitle{ margin-top:0.6rem; color: rgba(255,255,255,0.95); font-size:1rem }
+        .muted { color: var(--muted); }
+        .stButton>button{ background: linear-gradient(90deg,var(--primary),var(--accent)); color:#fff; border-radius:10px; padding:.55rem 1rem; border:none; box-shadow: 0 8px 24px rgba(11,61,145,0.08); }
+        .stButton>button:hover{ transform: translateY(-1px); }
+        input, textarea, .stSelectbox>div>div{ border-radius:10px; }
+        .metric-card{ padding:1rem; border-radius:12px; background:linear-gradient(180deg,#fff,#fbfdff); text-align:center; box-shadow: 0 8px 24px rgba(15,23,42,0.04); }
+        .metric-card .label{ color:var(--muted); font-size:0.9rem }
+        .metric-card .value{ font-weight:700; font-size:1.4rem; color:var(--primary) }
+        .stPlotlyChart{ border-radius:12px; }
+        @media (max-width:600px){ .header-box h1{ font-size:1.6rem } }
+        </style>
+        """,
+        unsafe_allow_html=True,
 )
 # =====================
 # LOAD MODEL
