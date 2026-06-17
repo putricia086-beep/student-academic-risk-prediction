@@ -241,105 +241,106 @@ if st.session_state["page"] == "data_akademik":
             st.success("✅ Status Akademik: TIDAK BERISIKO")
 
         # =====================
-        # EVALUASI MODEL
+        # EVALUASI MODEL (TERSEMBUNYI DI EXPANDER)
         # =====================
-        st.markdown("---")
-        st.subheader("📊 Evaluasi Model")
-        try:
-            # Load dataset for evaluation
-            df_eval = pd.read_csv("dataset_mahasiswa.csv")
-            # prepare X and y (use requested features)
-            X = df_eval[["IPK", "Kehadiran", "Nilai_Rata", "Semester", "SKS_Lulus"]]
-            # normalize target labels (handle both 'Tidak_Berisiko' and 'Tidak Berisiko')
-            y = df_eval["Status"].astype(str).str.replace("_", " ").str.strip()
-
-            # split and evaluate
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42, stratify=y)
-            y_pred = model_akademik.predict(X_test)
-            # normalize predictions labels too
-            y_pred = pd.Series(y_pred).astype(str).str.replace("_", " ").str.strip()
-            y_test = pd.Series(y_test).astype(str).str.replace("_", " ").str.strip()
-
-            # classification report (use weighted avg to summarize multiclass)
-            report = classification_report(y_test, y_pred, output_dict=True, zero_division=0)
-            precision = float(report.get("weighted avg", {}).get("precision", 0.0))
-            recall = float(report.get("weighted avg", {}).get("recall", 0.0))
-            f1 = float(report.get("weighted avg", {}).get("f1-score", 0.0))
-            acc = accuracy_score(y_test, y_pred)
-
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Accuracy", f"{acc:.3f}")
-            m2.metric("Precision", f"{precision:.3f}")
-            m3.metric("Recall", f"{recall:.3f}")
-            m4.metric("F1-Score", f"{f1:.3f}")
-
-            # Confusion matrix
+        with st.expander("📊 Lihat Detail Evaluasi Model", expanded=False):
             st.markdown("---")
-            st.subheader("🔢 Confusion Matrix Model Prediksi Risiko Akademik")
-            labels = ["Tidak Berisiko", "Berisiko"]
-            cm = confusion_matrix(y_test, y_pred, labels=labels)
-            fig_cm, ax = plt.subplots(figsize=(5, 4))
-            im = ax.imshow(cm, cmap='Blues')
-            for (i, j), val in np.ndenumerate(cm):
-                ax.text(j, i, int(val), ha='center', va='center', color='black')
-            ax.set_xticks([0, 1])
-            ax.set_yticks([0, 1])
-            ax.set_xticklabels(labels)
-            ax.set_yticklabels(labels)
-            ax.set_xlabel("Predicted")
-            ax.set_ylabel("Actual")
-            ax.set_title("Confusion Matrix Model Prediksi Risiko Akademik")
-            fig_cm.colorbar(im, ax=ax)
-            st.pyplot(fig_cm)
-
-        except Exception as e:
-            st.info(f"Evaluasi model tidak tersedia: {e}")
-        
-        # =====================
-        # STATISTIK HASIL PREDIKSI
-        # =====================
-        st.markdown("---")
-        st.subheader("📈 Statistik Hasil Prediksi")
-        hist_path = os.path.join("data", "hasil_prediksi.csv")
-        if os.path.exists(hist_path):
+            st.subheader("📊 Evaluasi Model")
             try:
-                df_hist = pd.read_csv(hist_path, encoding='utf-8-sig')
-                # normalize label variants
-                df_hist["Hasil_Prediksi"] = df_hist["Hasil_Prediksi"].astype(str).replace({"Tidak_Berisiko": "Tidak Berisiko"})
-                total_pred = len(df_hist)
-                jumlah_berisiko = int((df_hist["Hasil_Prediksi"] == "Berisiko").sum())
-                jumlah_tidak = int((df_hist["Hasil_Prediksi"] == "Tidak Berisiko").sum())
+                # Load dataset for evaluation
+                df_eval = pd.read_csv("dataset_mahasiswa.csv")
+                # prepare X and y (use requested features)
+                X = df_eval[["IPK", "Kehadiran", "Nilai_Rata", "Semester", "SKS_Lulus"]]
+                # normalize target labels (handle both 'Tidak_Berisiko' and 'Tidak Berisiko')
+                y = df_eval["Status"].astype(str).str.replace("_", " ").str.strip()
 
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Total Prediksi", total_pred)
-                c2.metric("Jumlah Mahasiswa Berisiko", jumlah_berisiko)
-                c3.metric("Jumlah Mahasiswa Tidak Berisiko", jumlah_tidak)
+                # split and evaluate
+                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42, stratify=y)
+                y_pred = model_akademik.predict(X_test)
+                # normalize predictions labels too
+                y_pred = pd.Series(y_pred).astype(str).str.replace("_", " ").str.strip()
+                y_test = pd.Series(y_test).astype(str).str.replace("_", " ").str.strip()
 
-                # Grafik distribusi
+                # classification report (use weighted avg to summarize multiclass)
+                report = classification_report(y_test, y_pred, output_dict=True, zero_division=0)
+                precision = float(report.get("weighted avg", {}).get("precision", 0.0))
+                recall = float(report.get("weighted avg", {}).get("recall", 0.0))
+                f1 = float(report.get("weighted avg", {}).get("f1-score", 0.0))
+                acc = accuracy_score(y_test, y_pred)
+
+                m1, m2, m3, m4 = st.columns(4)
+                m1.metric("Accuracy", f"{acc:.3f}")
+                m2.metric("Precision", f"{precision:.3f}")
+                m3.metric("Recall", f"{recall:.3f}")
+                m4.metric("F1-Score", f"{f1:.3f}")
+
+                # Confusion matrix
                 st.markdown("---")
-                st.subheader("📊 Distribusi Hasil Prediksi Mahasiswa")
-                df_dist = df_hist["Hasil_Prediksi"].value_counts().reset_index()
-                df_dist.columns = ["Hasil", "Jumlah"]
-                fig_pie_pred = px.pie(df_dist, names="Hasil", values="Jumlah", title="Distribusi Hasil Prediksi Mahasiswa", color_discrete_sequence=["#0b3d91", "#0b6b3a"]) 
-                fig_pie_pred.update_traces(textposition='inside', textinfo='percent+label')
-                st.plotly_chart(fig_pie_pred, use_container_width=True)
-
-                fig_bar_pred = px.bar(df_dist, x="Hasil", y="Jumlah", color="Hasil", title="Distribusi Hasil Prediksi Mahasiswa", color_discrete_map={"Berisiko": "#d62828", "Tidak Berisiko": "#2a9d8f"})
-                fig_bar_pred.update_layout(showlegend=False)
-                st.plotly_chart(fig_bar_pred, use_container_width=True)
-
-                # Dataset hasil prediksi
-                st.markdown("---")
-                st.subheader("📚 Dataset Hasil Prediksi Mahasiswa")
-                st.dataframe(df_hist)
-
-                csv_bytes = df_hist.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig')
-                st.download_button(label="Download CSV Hasil Prediksi", data=csv_bytes, file_name="hasil_prediksi.csv", mime="text/csv")
+                st.subheader("🔢 Confusion Matrix Model Prediksi Risiko Akademik")
+                labels = ["Tidak Berisiko", "Berisiko"]
+                cm = confusion_matrix(y_test, y_pred, labels=labels)
+                fig_cm, ax = plt.subplots(figsize=(5, 4))
+                im = ax.imshow(cm, cmap='Blues')
+                for (i, j), val in np.ndenumerate(cm):
+                    ax.text(j, i, int(val), ha='center', va='center', color='black')
+                ax.set_xticks([0, 1])
+                ax.set_yticks([0, 1])
+                ax.set_xticklabels(labels)
+                ax.set_yticklabels(labels)
+                ax.set_xlabel("Predicted")
+                ax.set_ylabel("Actual")
+                ax.set_title("Confusion Matrix Model Prediksi Risiko Akademik")
+                fig_cm.colorbar(im, ax=ax)
+                st.pyplot(fig_cm)
 
             except Exception as e:
-                st.error(f"Gagal membaca data hasil prediksi: {e}")
-        else:
-            st.info("Belum ada riwayat prediksi. Tekan tombol Prediksi untuk mulai menyimpan hasil.")
+                st.info(f"Evaluasi model tidak tersedia: {e}")
+            
+            # =====================
+            # STATISTIK HASIL PREDIKSI
+            # =====================
+            st.markdown("---")
+            st.subheader("📈 Statistik Hasil Prediksi")
+            hist_path = os.path.join("data", "hasil_prediksi.csv")
+            if os.path.exists(hist_path):
+                try:
+                    df_hist = pd.read_csv(hist_path, encoding='utf-8-sig')
+                    # normalize label variants
+                    df_hist["Hasil_Prediksi"] = df_hist["Hasil_Prediksi"].astype(str).replace({"Tidak_Berisiko": "Tidak Berisiko"})
+                    total_pred = len(df_hist)
+                    jumlah_berisiko = int((df_hist["Hasil_Prediksi"] == "Berisiko").sum())
+                    jumlah_tidak = int((df_hist["Hasil_Prediksi"] == "Tidak Berisiko").sum())
+
+                    c1, c2, c3 = st.columns(3)
+                    c1.metric("Total Prediksi", total_pred)
+                    c2.metric("Jumlah Mahasiswa Berisiko", jumlah_berisiko)
+                    c3.metric("Jumlah Mahasiswa Tidak Berisiko", jumlah_tidak)
+
+                    # Grafik distribusi
+                    st.markdown("---")
+                    st.subheader("📊 Distribusi Hasil Prediksi Mahasiswa")
+                    df_dist = df_hist["Hasil_Prediksi"].value_counts().reset_index()
+                    df_dist.columns = ["Hasil", "Jumlah"]
+                    fig_pie_pred = px.pie(df_dist, names="Hasil", values="Jumlah", title="Distribusi Hasil Prediksi Mahasiswa", color_discrete_sequence=["#0b3d91", "#0b6b3a"]) 
+                    fig_pie_pred.update_traces(textposition='inside', textinfo='percent+label')
+                    st.plotly_chart(fig_pie_pred, use_container_width=True)
+
+                    fig_bar_pred = px.bar(df_dist, x="Hasil", y="Jumlah", color="Hasil", title="Distribusi Hasil Prediksi Mahasiswa", color_discrete_map={"Berisiko": "#d62828", "Tidak Berisiko": "#2a9d8f"})
+                    fig_bar_pred.update_layout(showlegend=False)
+                    st.plotly_chart(fig_bar_pred, use_container_width=True)
+
+                    # Dataset hasil prediksi
+                    st.markdown("---")
+                    st.subheader("📚 Dataset Hasil Prediksi Mahasiswa")
+                    st.dataframe(df_hist)
+
+                    csv_bytes = df_hist.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig')
+                    st.download_button(label="Download CSV Hasil Prediksi", data=csv_bytes, file_name="hasil_prediksi.csv", mime="text/csv")
+
+                except Exception as e:
+                    st.error(f"Gagal membaca data hasil prediksi: {e}")
+            else:
+                st.info("Belum ada riwayat prediksi. Tekan tombol Prediksi untuk mulai menyimpan hasil.")
 
     # =====================
     # FEEDBACK
